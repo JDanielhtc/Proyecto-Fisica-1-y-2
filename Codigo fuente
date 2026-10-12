@@ -1,0 +1,250 @@
+import tkinter as tk
+from tkinter import ttk
+import math
+
+# Constantes físicas
+EPSILON_0 = 8.854187817e-12  # F/m (Permitividad en el vacío)
+K_COULOMB = 8.9875517923e9   # N*m^2/C^2 (Constante de Coulomb)
+
+class SimuladorFisicaApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Simulador de Física: Unidad 1 y Unidad 2")
+        self.root.geometry("1100x700")
+        self.root.configure(bg="#0f172a")
+
+        # Configurar Estilos
+        style = ttk.Style()
+        style.theme_use('clam')
+        style.configure("TNotebook", background="#0f172a", borderwidth=0)
+        style.configure("TNotebook.Tab", background="#1e293b", foreground="#94a3b8", font=('Segoe UI', 10, 'bold'), padding=[15, 8])
+        style.map("TNotebook.Tab", background=[("selected", "#38bdf8")], foreground=[("selected", "#0f172a")])
+
+        # Pestañas (Notebook)
+        self.notebook = ttk.Notebook(self.root)
+        self.notebook.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # Tab 1: Unidad 2 (Capacitores)
+        self.tab_u2 = tk.Frame(self.notebook, bg="#0f172a")
+        self.notebook.add(self.tab_u2, text="⚡ Unidad 2: Capacitores y Dieléctricos")
+        self.crear_modulo_unidad2()
+
+        # Tab 2: Unidad 1 (Campo y Cargas)
+        self.tab_u1 = tk.Frame(self.notebook, bg="#0f172a")
+        self.notebook.add(self.tab_u1, text="🌐 Unidad 1: Campo y Cargas Puntuales")
+        self.crear_modulo_unidad1()
+
+    # ==========================================
+    # MÓDULO UNIDAD 2: CAPACITORES Y DIELÉCTRICOS
+    # ==========================================
+    def crear_modulo_unidad2(self):
+        panel_izq = tk.Frame(self.tab_u2, bg="#1e293b", width=340, padx=15, pady=15)
+        panel_izq.pack(side="left", fill="y", padx=(0, 10))
+
+        # Título
+        tk.Label(panel_izq, text="⚙️ Parámetros del Capacitor", font=("Segoe UI", 12, "bold"), fg="#38bdf8", bg="#1e293b").pack(anchor="w", pady=(0, 15))
+
+        # Controles
+        # 1. Voltaje
+        tk.Label(panel_izq, text="Voltaje (V):", font=("Segoe UI", 9, "bold"), fg="#f8fafc", bg="#1e293b").pack(anchor="w")
+        self.lbl_v = tk.Label(panel_izq, text="12.0 V", fg="#38bdf8", bg="#1e293b")
+        self.lbl_v.pack(anchor="e")
+        self.scale_v = tk.Scale(panel_izq, from_=0, to=50, resolution=0.5, orient="horizontal", bg="#1e293b", fg="white", highlightthickness=0, command=self.actualizar_u2)
+        self.scale_v.set(12)
+        self.scale_v.pack(fill="x", pady=(0, 10))
+
+        # 2. Área
+        tk.Label(panel_izq, text="Área de Placas (A):", font=("Segoe UI", 9, "bold"), fg="#f8fafc", bg="#1e293b").pack(anchor="w")
+        self.lbl_a = tk.Label(panel_izq, text="100 cm²", fg="#38bdf8", bg="#1e293b")
+        self.lbl_a.pack(anchor="e")
+        self.scale_a = tk.Scale(panel_izq, from_=10, to=400, resolution=5, orient="horizontal", bg="#1e293b", fg="white", highlightthickness=0, command=self.actualizar_u2)
+        self.scale_a.set(100)
+        self.scale_a.pack(fill="x", pady=(0, 10))
+
+        # 3. Distancia
+        tk.Label(panel_izq, text="Separación (d):", font=("Segoe UI", 9, "bold"), fg="#f8fafc", bg="#1e293b").pack(anchor="w")
+        self.lbl_d = tk.Label(panel_izq, text="4.0 mm", fg="#38bdf8", bg="#1e293b")
+        self.lbl_d.pack(anchor="e")
+        self.scale_d = tk.Scale(panel_izq, from_=1.0, to=15.0, resolution=0.2, orient="horizontal", bg="#1e293b", fg="white", highlightthickness=0, command=self.actualizar_u2)
+        self.scale_d.set(4.0)
+        self.scale_d.pack(fill="x", pady=(0, 10))
+
+        # 4. Dieléctrico
+        tk.Label(panel_izq, text="Material Dieléctrico (κ):", font=("Segoe UI", 9, "bold"), fg="#f8fafc", bg="#1e293b").pack(anchor="w", pady=(5, 2))
+        self.dielectric_options = {
+            "Vacío / Aire (κ = 1.0)": 1.0,
+            "Papel parafinado (κ = 3.5)": 3.5,
+            "Vidrio Pyrex (κ = 5.6)": 5.6,
+            "Agua pura (κ = 80.0)": 80.0
+        }
+        self.combo_diel = ttk.Combobox(panel_izq, values=list(self.dielectric_options.keys()), state="readonly")
+        self.combo_diel.current(0)
+        self.combo_diel.pack(fill="x", pady=(0, 15))
+        self.combo_diel.bind("<<ComboboxSelected>>", lambda e: self.actualizar_u2())
+
+        # Recuadro Resultados
+        res_frame = tk.LabelFrame(panel_izq, text=" 📊 Cálculos Físicos ", font=("Segoe UI", 10, "bold"), fg="#38bdf8", bg="#111827", padx=10, pady=10)
+        res_frame.pack(fill="x", pady=10)
+
+        self.res_c = tk.Label(res_frame, text="Capacitancia (C): --", fg="#f8fafc", bg="#111827", font=("Segoe UI", 9))
+        self.res_c.pack(anchor="w", pady=2)
+        self.res_q = tk.Label(res_frame, text="Carga (Q): --", fg="#f8fafc", bg="#111827", font=("Segoe UI", 9))
+        self.res_q.pack(anchor="w", pady=2)
+        self.res_e = tk.Label(res_frame, text="Campo Eléctrico (E): --", fg="#f8fafc", bg="#111827", font=("Segoe UI", 9))
+        self.res_e.pack(anchor="w", pady=2)
+        self.res_u = tk.Label(res_frame, text="Energía (U): --", fg="#f8fafc", bg="#111827", font=("Segoe UI", 9))
+        self.res_u.pack(anchor="w", pady=2)
+
+        # Canvas visual
+        self.canvas_u2 = tk.Canvas(self.tab_u2, bg="#050811", highlightthickness=1, highlightbackground="#334155")
+        self.canvas_u2.pack(side="right", fill="both", expand=True)
+
+        self.actualizar_u2()
+
+    def actualizar_u2(self, *args):
+        v = self.scale_v.get()
+        a_cm2 = self.scale_a.get()
+        d_mm = self.scale_d.get()
+        diel_text = self.combo_diel.get()
+        kappa = self.dielectric_options.get(diel_text, 1.0)
+
+        # Actualizar etiquetas
+        self.lbl_v.config(text=f"{v:.1f} V")
+        self.lbl_a.config(text=f"{a_cm2:.0f} cm²")
+        self.lbl_d.config(text=f"{d_mm:.1f} mm")
+
+        # Conversiones al SI
+        area_m2 = a_cm2 * 1e-4
+        dist_m = d_mm * 1e-3
+
+        # Ecuaciones físicas
+        c_farads = (kappa * EPSILON_0 * area_m2) / dist_m
+        q_coulombs = c_farads * v
+        e_field = v / dist_m if dist_m > 0 else 0
+        u_joules = 0.5 * c_farads * (v ** 2)
+
+        # Mostrar resultados
+        self.res_c.config(text=f"Capacitancia (C): {c_farads*1e12:.2f} pF")
+        self.res_q.config(text=f"Carga (Q): {q_coulombs*1e12:.2f} pC")
+        self.res_e.config(text=f"Campo (E): {e_field/1000:.2f} kV/m" if e_field >= 1000 else f"Campo (E): {e_field:.1f} V/m")
+        self.res_u.config(text=f"Energía (U): {u_joules*1e9:.2f} nJ")
+
+        self.dibujar_capacitor(v, a_cm2, d_mm, kappa)
+
+    def dibujar_capacitor(self, v, a_cm2, d_mm, kappa):
+        self.canvas_u2.delete("all")
+        w = self.canvas_u2.winfo_width() or 700
+        h = self.canvas_u2.winfo_height() or 600
+
+        cx, cy = w // 2, h // 2
+        plate_w = 220 + int((a_cm2 / 400) * 260)
+        plate_h = 22
+        separation = 40 + int((d_mm / 15.0) * 160)
+
+        top_y = cy - separation // 2
+        bot_y = cy + separation // 2
+
+        # 1. Dibujar Dieléctrico
+        if kappa > 1.0:
+            color = "#0284c7" if kappa == 80.0 else "#d97706"
+            self.canvas_u2.create_rectangle(cx - plate_w//2, top_y, cx + plate_w//2, bot_y, fill=color, outline="#38bdf8", dash=(4, 4))
+            self.canvas_u2.create_text(cx, cy, text=f"Dieléctrico κ = {kappa}", fill="#ffffff", font=("Segoe UI", 11, "bold"))
+
+        # 2. Líneas de Campo Eléctrico
+        if v > 0:
+            num_lines = max(5, plate_w // 30)
+            step_x = (plate_w - 40) / (num_lines - 1) if num_lines > 1 else 0
+            for i in range(num_lines):
+                x = (cx - plate_w//2 + 20) + i * step_x
+                self.canvas_u2.create_line(x, top_y + plate_h, x, bot_y, fill="#ef4444", arrow=tk.LAST, width=2)
+
+        # 3. Placa Superior (+)
+        self.canvas_u2.create_rectangle(cx - plate_w//2, top_y, cx + plate_w//2, top_y + plate_h, fill="#ef4444", outline="#b91c1c")
+        self.canvas_u2.create_text(cx, top_y + plate_h//2, text="+ + + + PLACA POSITIVA (+Q) + + + +", fill="#ffffff", font=("Segoe UI", 9, "bold"))
+
+        # 4. Placa Inferior (-)
+        self.canvas_u2.create_rectangle(cx - plate_w//2, bot_y - plate_h, cx + plate_w//2, bot_y, fill="#3b82f6", outline="#1d4ed8")
+        self.canvas_u2.create_text(cx, bot_y - plate_h//2, text="- - - - PLACA NEGATIVA (-Q) - - - -", fill="#ffffff", font=("Segoe UI", 9, "bold"))
+
+        # Terminales
+        self.canvas_u2.create_line(cx, top_y, cx, top_y - 40, fill="#94a3b8", width=3)
+        self.canvas_u2.create_line(cx, bot_y, cx, bot_y + 40, fill="#94a3b8", width=3)
+
+    # ==========================================
+    # MÓDULO UNIDAD 1: CARGAS Y CAMPO ELÉCTRICO
+    # ==========================================
+    def crear_modulo_unidad1(self):
+        panel_izq = tk.Frame(self.tab_u1, bg="#1e293b", width=340, padx=15, pady=15)
+        panel_izq.pack(side="left", fill="y", padx=(0, 10))
+
+        tk.Label(panel_izq, text="⚙️ Cargas Puntuales", font=("Segoe UI", 12, "bold"), fg="#38bdf8", bg="#1e293b").pack(anchor="w", pady=(0, 10))
+        tk.Label(panel_izq, text="Haz clic izquierdo en la pantalla negra\npara añadir o mover cargas.", fg="#94a3b8", bg="#1e293b", justify="left").pack(anchor="w", pady=(0, 15))
+
+        tk.Label(panel_izq, text="Tipo de Carga:", font=("Segoe UI", 9, "bold"), fg="#f8fafc", bg="#1e293b").pack(anchor="w")
+        self.tipo_carga = tk.StringVar(value="+q")
+        tk.Radiobutton(panel_izq, text="Positiva (+q)", variable=self.tipo_carga, value="+q", fg="#ef4444", bg="#1e293b", selectcolor="#0f172a", font=("Segoe UI", 9)).pack(anchor="w")
+        tk.Radiobutton(panel_izq, text="Negativa (-q)", variable=self.tipo_carga, value="-q", fg="#38bdf8", bg="#1e293b", selectcolor="#0f172a", font=("Segoe UI", 9)).pack(anchor="w")
+
+        btn_limpiar = tk.Button(panel_izq, text="🗑️ Limpiar Cargas", bg="#ef4444", fg="white", font=("Segoe UI", 9, "bold"), command=self.limpiar_cargas, relief="flat", pady=5)
+        btn_limpiar.pack(fill="x", pady=20)
+
+        self.charges = [
+            {"x": 250, "y": 300, "q": 5e-9},
+            {"x": 450, "y": 300, "q": -5e-9}
+        ]
+
+        self.canvas_u1 = tk.Canvas(self.tab_u1, bg="#050811", highlightthickness=1, highlightbackground="#334155")
+        self.canvas_u1.pack(side="right", fill="both", expand=True)
+        self.canvas_u1.bind("<Button-1>", self.agregar_carga)
+
+        self.tab_u1.bind("<Visibility>", lambda e: self.dibujar_campo())
+
+    def limpiar_cargas(self):
+        self.charges = []
+        self.dibujar_campo()
+
+    def agregar_carga(self, event):
+        val_q = 5e-9 if self.tipo_carga.get() == "+q" else -5e-9
+        self.charges.append({"x": event.x, "y": event.y, "q": val_q})
+        self.dibujar_campo()
+
+    def dibujar_campo(self):
+        self.canvas_u1.delete("all")
+        w = self.canvas_u1.winfo_width() or 700
+        h = self.canvas_u1.winfo_height() or 600
+
+        # Vector field grid
+        step = 40
+        for x in range(25, w, step):
+            for y in range(25, h, step):
+                ex, ey = 0.0, 0.0
+                for c in self.charges:
+                    dx = x - c["x"]
+                    dy = y - c["y"]
+                    r2 = dx**2 + dy**2 + 100
+                    r = math.sqrt(r2)
+                    e_mag = (K_COULOMB * c["q"]) / r2
+                    ex += e_mag * (dx / r)
+                    ey += e_mag * (dy / r)
+
+                etot = math.sqrt(ex**2 + ey**2)
+                if etot > 1e-4:
+                    length = min(16, etot * 0.005 + 6)
+                    ang = math.atan2(ey, ex)
+                    x2 = x + length * math.cos(ang)
+                    y2 = y + length * math.sin(ang)
+                    self.canvas_u1.create_line(x, y, x2, y2, fill="#38bdf8", arrow=tk.LAST, width=1)
+
+        # Dibujar Cargas
+        for c in self.charges:
+            color = "#ef4444" if c["q"] > 0 else "#3b82f6"
+            txt = "+q" if c["q"] > 0 else "-q"
+            r = 15
+            self.canvas_u1.create_oval(c["x"]-r, c["y"]-r, c["x"]+r, c["y"]+r, fill=color, outline="#ffffff", width=2)
+            self.canvas_u1.create_text(c["x"], c["y"], text=txt, fill="#ffffff", font=("Segoe UI", 10, "bold"))
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = SimuladorFisicaApp(root)
+    root.mainloop()
